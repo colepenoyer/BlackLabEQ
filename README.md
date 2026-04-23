@@ -18,6 +18,8 @@ This project demonstrates real-time DSP processing by implementing a multi-band 
 ## Purpose
 This project was created to: 
 - Build a purposeful audio plugin from scratch.
+- Explore digital signal processing concepts through a hands-on project
+- Translate audio engineering principles into a functional audio plugin
 
 --- 
 ## Preview
