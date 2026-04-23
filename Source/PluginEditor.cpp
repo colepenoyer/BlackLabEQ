@@ -5,7 +5,6 @@
 
   ==============================================================================
 */
-
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
 
@@ -55,6 +54,7 @@ BlackLabEQAudioProcessorEditor::BlackLabEQAudioProcessorEditor (BlackLabEQAudioP
     addAndMakeVisible(highCutLabel);
 
     setSize(600, 280);
+    startTimerHz(30);
 }
 
 BlackLabEQAudioProcessorEditor::~BlackLabEQAudioProcessorEditor()
@@ -62,43 +62,10 @@ BlackLabEQAudioProcessorEditor::~BlackLabEQAudioProcessorEditor()
 }
 
 //==============================================================================
-
 void BlackLabEQAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    auto background = juce::Colour::fromRGB(72, 130, 122);
-    auto panel = juce::Colour::fromRGB(64, 118, 111);
-    auto outline = juce::Colour::fromRGBA(255, 255, 255, 35);
-    auto text = juce::Colour::fromRGB(228, 236, 232);
-
-    g.fillAll(background);
-
-    auto panelArea = getLocalBounds().reduced(14);
-    g.setColour(panel);
-    g.fillRoundedRectangle(panelArea.toFloat(), 10.0f);
-
-    g.setColour(outline);
-    g.drawRoundedRectangle(panelArea.toFloat(), 10.0f, 1.0f);
-
-    g.setColour(juce::Colour::fromRGBA(255, 255, 255, 28));
-    g.drawVerticalLine(128.0f, 78.0f, 215.0f);
-    g.drawVerticalLine(470.0f, 78.0f, 215.0f);
-
-    g.setColour(text);
-    g.setFont(16.0f);
-    g.drawText("BLACKLAB EQ", 0, 12, getWidth(), 22, juce::Justification::centred);
-}
-
-
-std::vector<juce::Component*> BlackLabEQAudioProcessorEditor::getComps()
-{
-    return
-    {
-        &lowCutFreqSlider,
-        &peakFreqSlider,
-        &peakGainSlider,
-        &peakQualitySlider,
-        &highCutFreqSlider
-    };
+    drawBackground(g);
+    drawResponseCurve(g, getAnalysisArea());
 }
 
 void BlackLabEQAudioProcessorEditor::resized()
@@ -112,7 +79,7 @@ void BlackLabEQAudioProcessorEditor::resized()
     const int peakQX = 365;
     const int highCutX = 480;
 
-    const int knobY = 48;
+    const int knobY = 145;
 
     lowCutFreqSlider.setBounds(lowCutX, knobY, knobSize, knobSize);
     peakFreqSlider.setBounds(peakFreqX, knobY, knobSize, knobSize);
@@ -125,5 +92,144 @@ void BlackLabEQAudioProcessorEditor::resized()
     peakGainLabel.setBounds(peakGainX, knobY + knobSize + 4, knobSize, labelHeight);
     peakQLabel.setBounds(peakQX, knobY + knobSize + 4, knobSize, labelHeight);
     highCutLabel.setBounds(highCutX, knobY + knobSize + 4, knobSize, labelHeight);
+}
+
+void BlackLabEQAudioProcessorEditor::timerCallback()
+{
+    repaint();
+}
+
+std::vector<juce::Component*> BlackLabEQAudioProcessorEditor::getComps()
+{
+    return
+    {
+        &lowCutFreqSlider,
+        &peakFreqSlider,
+        &peakGainSlider,
+        &peakQualitySlider,
+        &highCutFreqSlider
+    };
+}
+
+juce::Rectangle<int> BlackLabEQAudioProcessorEditor::getRenderArea()
+{
+    return getLocalBounds().reduced(14);
+}
+
+juce::Rectangle<int> BlackLabEQAudioProcessorEditor::getAnalysisArea()
+{
+    return { 110, 60, 380, 85 };
+}
+
+void BlackLabEQAudioProcessorEditor::drawBackground(juce::Graphics& g)
+{
+    using namespace juce;
+
+    auto background = Colour::fromRGB(72, 130, 122);
+    auto panel = Colour::fromRGB(64, 118, 111);
+    auto outline = Colour::fromRGBA(255, 255, 255, 35);
+    auto text = Colour::fromRGB(228, 236, 232);
+
+    g.fillAll(background);
+
+    auto panelArea = getRenderArea();
+
+    g.setColour(panel);
+    g.fillRoundedRectangle(panelArea.toFloat(), 10.0f);
+
+    g.setColour(outline);
+    g.drawRoundedRectangle(panelArea.toFloat(), 10.0f, 1.0f);
+
+    g.setColour(Colour::fromRGBA(255, 255, 255, 28));
+    g.drawVerticalLine(128.0f, 150.0f, 265.0f);
+    g.drawVerticalLine(470.0f, 150.0f, 265.0f);
+
+    g.setColour(text);
+    g.setFont(16.0f);
+    g.drawText("BLACKLAB EQ", 0, 12, getWidth(), 22, Justification::centred);
+}
+
+void BlackLabEQAudioProcessorEditor::drawResponseCurve(juce::Graphics& g, const juce::Rectangle<int>& responseArea)
+{
+    using namespace juce;
+
+    g.setColour(Colour::fromRGBA(0, 0, 0, 25));
+    g.fillRoundedRectangle(responseArea.toFloat(), 6.0f);
+
+    auto settings = getChainSettings(audioProcessor.apvts);
+
+    auto sampleRate = audioProcessor.getSampleRate();
+    if (sampleRate <= 0.0)
+        sampleRate = 44100.0;
+
+    auto peakCoefficients =
+        juce::dsp::IIR::Coefficients<float>::makePeakFilter(
+            sampleRate,
+            settings.peakFreq,
+            settings.peakQuality,
+            juce::Decibels::decibelsToGain(settings.peakGainInDb));
+
+    auto lowCutCoefficients =
+        juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
+            settings.lowCutFreq,
+            sampleRate,
+            2 * (settings.lowCutSlope + 1));
+
+    auto highCutCoefficients =
+        juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
+            settings.highCutFreq,
+            sampleRate,
+            2 * (settings.highCutSlope + 1));
+
+    Path responseCurve;
+    const auto width = responseArea.getWidth();
+
+    std::vector<double> mags;
+    mags.resize(width);
+
+    for (int i = 0; i < width; ++i)
+    {
+        double mag = 1.0;
+        auto freq = mapToLog10((double)i / (double)width, 20.0, 20000.0);
+
+        mag *= peakCoefficients->getMagnitudeForFrequency(freq, sampleRate);
+
+        for (size_t j = 0; j < lowCutCoefficients.size(); ++j)
+            mag *= lowCutCoefficients[j]->getMagnitudeForFrequency(freq, sampleRate);
+
+        for (size_t j = 0; j < highCutCoefficients.size(); ++j)
+            mag *= highCutCoefficients[j]->getMagnitudeForFrequency(freq, sampleRate);
+
+        mags[i] = Decibels::gainToDecibels(mag);
+    }
+
+    auto mapY = [&](double db)
+    {
+        return jmap(db,
+                    -24.0, 24.0,
+                    (double)responseArea.getBottom(),
+                    (double)responseArea.getY());
+    };
+
+    responseCurve.startNewSubPath(responseArea.getX(), mapY(mags.front()));
+
+    for (int i = 1; i < mags.size(); ++i)
+    {
+        responseCurve.lineTo(responseArea.getX() + i, mapY(mags[i]));
+    }
+
+    g.saveState();
+    g.reduceClipRegion(responseArea);
+
+    g.setColour(Colour::fromRGBA(120, 220, 200, 80));
+    g.strokePath(responseCurve, PathStrokeType(4.0f));
+
+    g.setColour(Colour::fromRGB(120, 220, 200));
+    g.strokePath(responseCurve, PathStrokeType(2.0f));
+
+    g.restoreState();
+
+    g.setColour(Colour::fromRGBA(255, 255, 255, 20));
+    g.drawRoundedRectangle(responseArea.toFloat(), 6.0f, 1.0f);
 }
 

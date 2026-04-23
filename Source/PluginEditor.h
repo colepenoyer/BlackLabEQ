@@ -5,7 +5,6 @@
 
   ==============================================================================
 */
-
 #pragma once
 
 #include <JuceHeader.h>
@@ -13,57 +12,57 @@
 
 struct CustomRtrSlider : juce::Slider
 {
-  CustomRtrSlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalDrag,juce::Slider::TextEntryBoxPosition::NoTextBox)
+    CustomRtrSlider()
+        : juce::Slider(juce::Slider::RotaryHorizontalDrag,
+                       juce::Slider::NoTextBox)
     {
-        
     }
 };
 
-//==============================================================================
-/**
-*/
-class BlackLabEQAudioProcessorEditor  : public juce::AudioProcessorEditor
+class BlackLabEQAudioProcessorEditor  : public juce::AudioProcessorEditor,
+                                        private juce::Timer
 {
 public:
     BlackLabEQAudioProcessorEditor (BlackLabEQAudioProcessor&);
     ~BlackLabEQAudioProcessorEditor() override;
 
-    //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
 
 private:
+    void timerCallback() override;
+
     std::vector<juce::Component*> getComps();
 
-        BlackLabEQAudioProcessor& audioProcessor;
+    juce::Rectangle<int> getRenderArea();
+    juce::Rectangle<int> getAnalysisArea();
 
-        CustomRtrSlider lowCutFreqSlider;
-        CustomRtrSlider peakFreqSlider;
-        CustomRtrSlider peakGainSlider;
-        CustomRtrSlider peakQualitySlider;
-        CustomRtrSlider highCutFreqSlider;
+    void drawBackground(juce::Graphics& g);
+    void drawResponseCurve(juce::Graphics& g, const juce::Rectangle<int>& responseArea);
 
-        juce::Label lowCutLabel;
-        juce::Label peakFreqLabel;
-        juce::Label peakGainLabel;
-        juce::Label peakQLabel;
-        juce::Label highCutLabel;
+    BlackLabEQAudioProcessor& audioProcessor;
 
-        using APVTS = juce::AudioProcessorValueTreeState;
-        using Attachment = APVTS::SliderAttachment;
+    CustomRtrSlider lowCutFreqSlider;
+    CustomRtrSlider peakFreqSlider;
+    CustomRtrSlider peakGainSlider;
+    CustomRtrSlider peakQualitySlider;
+    CustomRtrSlider highCutFreqSlider;
 
-        Attachment lowCutFreqAttachment;
-        Attachment peakFreqAttachment;
-        Attachment peakGainAttachment;
-        Attachment peakQualityAttachment;
-        Attachment highCutFreqAttachment;
+    juce::Label lowCutLabel;
+    juce::Label peakFreqLabel;
+    juce::Label peakGainLabel;
+    juce::Label peakQLabel;
+    juce::Label highCutLabel;
 
+    using APVTS = juce::AudioProcessorValueTreeState;
+    using Attachment = APVTS::SliderAttachment;
 
-    
-    
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
-   
+    Attachment lowCutFreqAttachment;
+    Attachment peakFreqAttachment;
+    Attachment peakGainAttachment;
+    Attachment peakQualityAttachment;
+    Attachment highCutFreqAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (BlackLabEQAudioProcessorEditor)
 };
+
