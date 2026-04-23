@@ -4,7 +4,8 @@ A custom built EQ plugin built in C++ using JUCE framework.
 This project demonstrates real-time DSP processing by implementing a multi-band equalizer, including filtering and live frequency response visualization. 
 
 ## Preview
-<img width="602" height="304" alt="EQPrev" src="https://github.com/user-attachments/assets/9d0cdde1-2ec0-47e2-b965-30e37292eadb" />
+<img width="602" height="304" alt="EQPrev" src="https://github.com/user-attachments/assets/5034290c-bfdf-4f64-a5ce-3d41585542f7" />
+
 
 --- 
 
