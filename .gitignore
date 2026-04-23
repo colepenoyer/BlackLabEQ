@@ -6,5 +6,7 @@
 **/xcuserdata
 **/xcuserstate
 
+*.filtergraph
+
 
 **/.log
