@@ -146,7 +146,7 @@ void BlackLabEQAudioProcessorEditor::drawBackground(juce::Graphics& g)
 
     g.setColour(text);
     g.setFont(16.0f);
-    g.drawText("BLACKLAB EQ", 0, 12, getWidth(), 22, Justification::centred);
+    g.drawText("BLACK LAB EQ", 0, 12, getWidth(), 22, Justification::centred);
 }
 
 void BlackLabEQAudioProcessorEditor::drawResponseCurve(juce::Graphics& g, const juce::Rectangle<int>& responseArea)
