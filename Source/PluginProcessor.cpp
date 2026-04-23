@@ -108,26 +108,7 @@ void BlackLabEQAudioProcessor::prepareToPlay (double sampleRate, int samplesPerB
     RightChain.prepare(spec);
     
     
-    auto chainSettings = getChainSettings(apvts);
-    
-    updatePeakFilter(chainSettings);
-    
-    
-    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, sampleRate, 2* (chainSettings.lowCutSlope + 1));
-    
-    auto& leftLowCut = LeftChain.get<ChainPositions::LowCut>();
-    
-    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-    
-
-    
-    auto& rightLowCut = RightChain.get<ChainPositions::LowCut>();
-    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
-    
-
-    
-    
-    
+    updateFilters();
     
     
     
@@ -180,27 +161,8 @@ void BlackLabEQAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, j
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    auto chainSettings = getChainSettings(apvts);
     
-    updatePeakFilter(chainSettings);
-
-    
-    auto cutCoefficients = juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(chainSettings.lowCutFreq, getSampleRate(), 2* (chainSettings.lowCutSlope + 1));
-    
-    auto& leftLowCut = LeftChain.get<ChainPositions::LowCut>();
-    
-    updateCutFilter(leftLowCut, cutCoefficients, chainSettings.lowCutSlope);
-    
-
-    
-
-    
-    auto& rightLowCut = RightChain.get<ChainPositions::LowCut>();
-    updateCutFilter(rightLowCut, cutCoefficients, chainSettings.lowCutSlope);
-
-    
-    
-    
+    updateFilters();
     
 
     
@@ -289,6 +251,39 @@ void BlackLabEQAudioProcessor::updateCoefficients(Coefficients &old, const Coeff
     
 }
 
+
+void BlackLabEQAudioProcessor::updateLowCutFilters(const ChainSettings& chainSettings)
+{
+    auto lowCutCoefficients =
+        juce::dsp::FilterDesign<float>::designIIRHighpassHighOrderButterworthMethod(
+            chainSettings.lowCutFreq,
+            getSampleRate(),
+            2 * (chainSettings.lowCutSlope + 1));
+
+    updateCutFilter(LeftChain.get<LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+    updateCutFilter(RightChain.get<LowCut>(), lowCutCoefficients, chainSettings.lowCutSlope);
+}
+
+void BlackLabEQAudioProcessor::updateHighCutFilters(const ChainSettings& chainSettings)
+{
+    auto highCutCoefficients =
+        juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(
+            chainSettings.highCutFreq,
+            getSampleRate(),
+            2 * (chainSettings.highCutSlope + 1));
+
+    updateCutFilter(LeftChain.get<HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+    updateCutFilter(RightChain.get<HighCut>(), highCutCoefficients, chainSettings.highCutSlope);
+}
+
+void BlackLabEQAudioProcessor::updateFilters()
+{
+    auto chainSettings = getChainSettings(apvts);
+
+    updatePeakFilter(chainSettings);
+    updateLowCutFilters(chainSettings);
+    updateHighCutFilters(chainSettings);
+}
 
 
 
